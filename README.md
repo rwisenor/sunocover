@@ -32,4 +32,4 @@ Note- IGNORE the error message of dependency conflicts (of audio-separator) if e
 - [nomadkaraoke](https://github.com/nomadkaraoke) - Author of [python-audio-separator](https://github.com/nomadkaraoke/python-audio-separator/) Thank you!
 - [Kuielab & Woosung Choi](https://github.com/kuielab) - Developed the original MDX-Net AI code.
 - [PseudoRAM](https://github.com/nomadkaraoke) - Author of [RVC-v2-UI]
-(https://github.com/PseudoRAM/RVC-v2-UI) Thank you!
+(https://github.com/PseudoRAM/RVC-v2-UI/) Thank you!
