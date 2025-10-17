@@ -4,6 +4,11 @@ Standalone app for song processing to work in suno
 
 ## Install
 
+```bash
+git clone https://github.com/Ido108/sunocover.git
+cd sunocover
+```
+
 **Windows:** `setup.bat`
 **Mac/Linux:** `chmod +x setup.sh && ./setup.sh`
 
