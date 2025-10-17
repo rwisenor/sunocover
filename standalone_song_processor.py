@@ -517,14 +517,25 @@ def process_song(youtube_url, audio_file, heavy_processing, output_filename, pro
         )
         temp_files.append(merged_path)
 
-        # שלב 6: החלת שינוי מהירות וpitch' (כמו בשורות 10896-10898)
+        # שלב 6: החלת שינוי מהירות ופיץ' (כמו בשורות 10896-10898)
         progress(0.85, desc="Applying speed and pitch modifications...")
-        final_output = apply_speed_pitch(
+        temp_output = apply_speed_pitch(
             merged_path,
             speed=1.07,
             pitch_shift=1.03,
             progress_callback=lambda p, d: update_progress(0.85 + p * 0.15, d)
         )
+
+        # Rename to custom filename if provided
+        if output_filename and output_filename.strip():
+            safe_name = "".join(c for c in output_filename.strip() if c.isalnum() or c in (' ', '-', '_')).strip()
+            if safe_name:
+                final_output = os.path.join(OUTPUT_DIR, f"{safe_name}.mp3")
+                shutil.move(temp_output, final_output)
+            else:
+                final_output = temp_output
+        else:
+            final_output = temp_output
 
         progress(1.0, desc="Complete!")
 
