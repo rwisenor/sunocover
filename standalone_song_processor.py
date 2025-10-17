@@ -436,6 +436,30 @@ def apply_speed_pitch(input_path, speed=1.07, pitch_shift=1.03, progress_callbac
     except Exception as e:
         raise
 
+# ====== פונקציות עזר ======
+
+def clear_youtube_cache():
+    """Clears YouTube cache files and JSON"""
+    try:
+        global youtube_audio_cache
+        # Delete cache files
+        if os.path.exists(MEDIA_CACHE_DIR):
+            for file in os.listdir(MEDIA_CACHE_DIR):
+                file_path = os.path.join(MEDIA_CACHE_DIR, file)
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
+        # Clear cache dict
+        youtube_audio_cache = {}
+        # Save empty cache
+        if os.path.exists(YOUTUBE_AUDIO_CACHE_PATH):
+            os.remove(YOUTUBE_AUDIO_CACHE_PATH)
+        save_youtube_cache()
+        return "YouTube cache cleared"
+    except Exception as e:
+        return f"Error: {e}"
+
 # ====== הפונקציה הראשית לעיבוד ======
 
 def process_song(youtube_url, audio_file, heavy_processing, output_filename, progress=gr.Progress()):
@@ -458,7 +482,7 @@ def process_song(youtube_url, audio_file, heavy_processing, output_filename, pro
                 youtube_url.strip(),
                 lambda p, d: update_progress(0.05 + p * 0.1, d)
             )
-            temp_files.append(source_audio)
+            # Don't add to temp_files - keep YouTube cache
         elif audio_file is not None:
             source_audio = audio_file
         else:
@@ -628,6 +652,9 @@ def create_interface():
 **Models:** {len(local_models)} | **Cache:** {len(youtube_audio_cache)} files
             """)
 
+            clear_cache_btn = gr.Button("Clear YouTube Cache", variant="secondary", size="sm")
+            cache_status = gr.Textbox(label="Status", lines=1, interactive=False)
+
         with gr.Row():
             with gr.Column(scale=1):
                 gr.Markdown("### Input")
@@ -691,6 +718,11 @@ def create_interface():
             fn=process_song,
             inputs=[youtube_url, audio_file, heavy_processing, output_filename],
             outputs=[output_audio, status_text]
+        )
+
+        clear_cache_btn.click(
+            fn=clear_youtube_cache,
+            outputs=[cache_status]
         )
 
     return demo
