@@ -438,7 +438,7 @@ def apply_speed_pitch(input_path, speed=1.07, pitch_shift=1.03, progress_callbac
 
 # ====== הפונקציה הראשית לעיבוד ======
 
-def process_song(youtube_url, audio_file, heavy_processing, progress=gr.Progress()):
+def process_song(youtube_url, audio_file, heavy_processing, output_filename, progress=gr.Progress()):
     """
     פונקציה ראשית לעיבוד שיר
     מיושמת בדיוק כמו runLocalChangesongForCover + שלבי העיבוד במקור
@@ -641,6 +641,12 @@ def create_interface():
                     value=False
                 )
 
+                output_filename = gr.Textbox(
+                    label="Output Filename (optional)",
+                    placeholder="e.g., Cant help falling in love",
+                    lines=1
+                )
+
                 process_btn = gr.Button(
                     "Process Song",
                     variant="primary",
@@ -672,7 +678,7 @@ def create_interface():
         # חיבור הכפתור לפונקציה
         process_btn.click(
             fn=process_song,
-            inputs=[youtube_url, audio_file, heavy_processing],
+            inputs=[youtube_url, audio_file, heavy_processing, output_filename],
             outputs=[output_audio, status_text]
         )
 
