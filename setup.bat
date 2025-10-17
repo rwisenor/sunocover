@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ================================================================
-echo   RVC Song Processor - Setup
+echo   Suno Song Processor - By PresidentPikachu
 echo ================================================================
 echo.
 
@@ -84,8 +84,9 @@ echo [11/11] Creating start.bat...
 (
 echo @echo off
 echo call venv\Scripts\activate.bat
+echo start /B python standalone_song_processor.py
+echo timeout /t 3 /nobreak ^>nul
 echo start http://localhost:7860
-echo python standalone_song_processor.py
 echo pause
 ) > start.bat
 

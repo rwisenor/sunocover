@@ -2,7 +2,7 @@
 
 echo ""
 echo "================================================================"
-echo "  RVC Song Processor - Setup"
+echo "  Suno Song Processor - By PresidentPikachu"
 echo "================================================================"
 echo ""
 
@@ -92,8 +92,10 @@ echo "[11/11] Creating start.sh..."
 cat > start.sh << 'EOF'
 #!/bin/bash
 source venv/bin/activate
+python standalone_song_processor.py &
+sleep 3
 [[ "$OSTYPE" == "darwin"* ]] && open http://localhost:7860 || (command -v xdg-open &> /dev/null && xdg-open http://localhost:7860)
-python standalone_song_processor.py
+wait
 EOF
 chmod +x start.sh
 
