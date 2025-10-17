@@ -1,26 +1,21 @@
-# RVC Song Processor
+# SUNO Song Processor
 
-Standalone app for song processing with RVC voice conversion.
+Standalone app for song processing to work in suno
 
 ## Install
 
 **Windows:** `setup.bat`
 **Mac/Linux:** `chmod +x setup.sh && ./setup.sh`
 
-Requires: Python 3.10+, FFmpeg
+Requires: Python 3.10+
 
 ## Run
 
 **Windows:** `start.bat`
 **Mac/Linux:** `./start.sh`
 
-Opens automatically at http://localhost:7860
+Opens automatically
 
 ## Usage
 
-1. YouTube URL or upload audio file
-2. Regular (Hack) or Enhanced (Guitar)
-3. Process (3-8 min)
-4. Download result
-
-Processing: vocals separation, voice conversion, speed x1.07, pitch x1.03
+Upload an audio/youtube url, it will start the process right away (if suno not accepting the first output, try the enhanced process, it'll work.)
