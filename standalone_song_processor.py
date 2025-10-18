@@ -1256,7 +1256,7 @@ def create_interface():
                     display_choices.append(display)
 
                 return (
-                    gr.HTML(value='<div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 10px; border-radius: 8px; text-align: center; font-weight: 600; color: #155724; margin: 8px 0;">✅ Found {len(display_choices)} songs</div>'),
+                    gr.HTML(value=f'<div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 10px; border-radius: 8px; text-align: center; font-weight: 600; color: #155724; margin: 8px 0;">✅ Found {len(display_choices)} songs</div>'),
                     gr.Radio(
                         choices=display_choices,
                         value=display_choices[0] if display_choices else None,
