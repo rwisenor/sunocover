@@ -725,7 +725,7 @@ def create_interface():
 
 if __name__ == "__main__":
     print("="*60)
-    print("RVC Song Processor")
+    print("Suno Song Processor - By PresidentPikachu")
     print("="*60)
     print()
 
