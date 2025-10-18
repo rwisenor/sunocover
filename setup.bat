@@ -28,26 +28,22 @@ for %%d in (MyDownloadedModels temp_outputs media_cache unpacked_models separati
     if not exist "%%d" mkdir "%%d" 2>nul
 )
 
-:: Clone RVC
 echo.
-echo [4/9] Setting up RVC-v2-UI...
+echo [4/7] Setting up RVC...
 if not exist "RVC-v2-UI\src" (
-    echo Cloning RVC-v2-UI repository...
-    git clone https://github.com/PseudoRAM/RVC-v2-UI.git 2>nul || (
-        echo Git not available, downloading as ZIP...
-        curl -L "https://github.com/PseudoRAM/RVC-v2-UI/archive/main.zip" -o rvc.zip
+    git clone https://github.com/PseudoRAM/RVC-v2-UI.git --depth 1 2>nul || (
+        curl -sL "https://github.com/PseudoRAM/RVC-v2-UI/archive/main.zip" -o rvc.zip
         tar -xf rvc.zip && move RVC-v2-UI-main RVC-v2-UI >nul && del rvc.zip
     )
     echo RVC-v2-UI cloned successfully
 ) else (
     echo RVC-v2-UI already exists
 )
-if not exist "RVC-v2-UI\rvc_models" mkdir RVC-v2-UI\rvc_models
 
 
 :: Create virtual environment
 echo.
-echo [5/9] Setting up virtual environment...
+echo [5/7] Setting up virtual environment...
 if not exist "venv" (
     python -m venv venv
     echo Virtual environment created
@@ -64,7 +60,7 @@ python -m pip install pip==24.0 --quiet
 echo.
 echo [6/7] Installing packages...
 echo.
-echo Installing PyTorch 2.0.1 (LOCKED VERSION)...
+echo Installing PyTorch...
 if !HAS_CUDA!==1 (
     pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 --index-url https://download.pytorch.org/whl/cu118
     pip install onnxruntime-gpu==1.22.0
@@ -150,7 +146,7 @@ python -c "import fairseq; print('Fairseq: OK')"
 python -c "from audio_separator.separator import Separator; print('Audio Separator: OK')"
 echo ================================================================
 echo.
-echo DONE! PyTorch 2.0.1 is LOCKED and protected!
+echo DONE.
 echo Run 'start.bat' to launch.
 echo.
 pause
