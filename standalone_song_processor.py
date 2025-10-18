@@ -109,33 +109,110 @@ def prepare_model_files(model_name):
 
 # ====== פונקציות עיבוד - מתאימות לקוד המקורי ======
 
+def search_youtube(query, progress_callback=None):
+    """
+    מחפש שיר ביוטיוב ומחזיר 3 תוצאות ראשונות
+    """
+    try:
+        if progress_callback:
+            progress_callback(0.1, f"Searching YouTube for: {query}")
+
+        # חיפוש ביוטיוב - ytsearch3 מחזיר 3 תוצאות
+        cmd = [
+            'yt-dlp',
+            '--get-id',
+            '--get-title',
+            '--no-playlist',
+            '--extractor-args', 'youtube:player_client=android',
+            f'ytsearch3:{query}'
+        ]
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='replace'  # Replace invalid UTF-8 chars
+        )
+
+        if result.returncode != 0:
+            raise Exception(f"Search failed: {result.stderr if result.stderr else 'Unknown error'}")
+
+        if not result.stdout or not result.stdout.strip():
+            raise Exception("No results found")
+
+        lines = result.stdout.strip().split('\n')
+        if len(lines) < 2:
+            raise Exception("No results found")
+
+        # Parse results - format is: title\nid\ntitle\nid\n...
+        results = []
+        for i in range(0, len(lines), 2):
+            if i + 1 < len(lines):
+                title = lines[i].strip()
+                video_id = lines[i + 1].strip()
+                if title and video_id:
+                    url = f"https://www.youtube.com/watch?v={video_id}"
+                    results.append({
+                        'title': title,
+                        'url': url,
+                        'display': f"{title}"
+                    })
+
+        if not results:
+            raise Exception("No valid results found")
+
+        if progress_callback:
+            progress_callback(1.0, f"Found {len(results)} results")
+
+        print(f"✅ Search results: {len(results)} videos found")
+        return results
+
+    except Exception as e:
+        print(f"❌ Search error: {e}")
+        raise
+
 def download_youtube_audio(url, progress_callback=None):
     """
     מוריד אודיו מיוטיוב - בדיוק כמו בקוד המקורי
-    משתמש במערכת קאש זהה
+    משתמש במערכת קאש עם שמות נורמליים
     """
     global youtube_audio_cache
 
     try:
-        # בדיקת קאש - כמו בקוד המקורי
-        unique_id = base64.b64encode(url.encode()).decode().replace('/', '').replace('+', '').replace('=', '')
-        cached_path = os.path.join(MEDIA_CACHE_DIR, f"{unique_id}.mp3")
+        # קודם כל, נחלץ את ה-title של הוידאו
+        if progress_callback:
+            progress_callback(0.05, "Getting video info...")
+
+        # חילוץ title
+        cmd_title = ['yt-dlp', '--get-title', '--extractor-args', 'youtube:player_client=android', url]
+        result = subprocess.run(cmd_title, capture_output=True, text=True, encoding='utf-8', errors='replace')
+
+        if result.returncode != 0:
+            raise Exception(f"Failed to get video title: {result.stderr}")
+
+        video_title = result.stdout.strip()
+        # ניקוי שם הקובץ - הסרת תווים לא חוקיים
+        safe_title = "".join(c for c in video_title if c.isalnum() or c in (' ', '-', '_')).strip()
+        safe_title = safe_title[:100]  # הגבלת אורך
+
+        cached_path = os.path.join(MEDIA_CACHE_DIR, f"{safe_title}.mp3")
 
         # קאש HIT מהזיכרון
         if url in youtube_audio_cache and os.path.exists(youtube_audio_cache[url]):
             print(f"✅ [YouTube Audio Cache] HIT: Found existing audio file for {url}")
             if progress_callback:
                 progress_callback(1.0, "Found in cache!")
-            return youtube_audio_cache[url]
+            return youtube_audio_cache[url], video_title
 
         # קאש HIT מהדיסק
         if os.path.exists(cached_path):
-            print(f"✅ [YouTube Audio Cache] HIT: Found existing audio file on disk")
+            print(f"✅ [YouTube Audio Cache] HIT: Found existing audio file on disk: {safe_title}.mp3")
             youtube_audio_cache[url] = cached_path
             save_youtube_cache()
             if progress_callback:
                 progress_callback(1.0, "Found in cache!")
-            return cached_path
+            return cached_path, video_title
 
         print(f"[YouTube Cache] MISS: No valid cached file found for {url}. Starting download...")
 
@@ -145,19 +222,21 @@ def download_youtube_audio(url, progress_callback=None):
         # בדיקה אם יש cookies.txt (כמו בקוד המקורי)
         cookies_path = os.path.join(BASE_DIR, 'cookies.txt')
 
-        # פקודת yt-dlp - בדיוק כמו בקוד המקורי
+        # פקודת yt-dlp - איכות מקסימלית, ללא thumbnail
         cmd = [
             'yt-dlp',
             url,
-            '-f', 'bestaudio/best',
+            '-f', 'bestaudio[ext=m4a]/bestaudio/best',
             '-x',  # חילוץ אודיו
             '--audio-format', 'mp3',
+            '--audio-quality', '0',  # איכות מקסימלית
+            '--no-playlist',
+            '--extractor-args', 'youtube:player_client=android',
             '-o', cached_path
         ]
 
         if os.path.exists(cookies_path):
             cmd.extend(['--cookies', cookies_path])
-
 
         # הרצת yt-dlp עם הצגת התקדמות
         process = subprocess.Popen(
@@ -166,6 +245,7 @@ def download_youtube_audio(url, progress_callback=None):
             stderr=subprocess.STDOUT,
             text=True,
             encoding='utf-8',
+            errors='replace',
             universal_newlines=True,
             bufsize=1
         )
@@ -210,7 +290,8 @@ def download_youtube_audio(url, progress_callback=None):
         if progress_callback:
             progress_callback(1.0, "Download complete")
 
-        return cached_path
+        print(f"✅ Downloaded and cached: {safe_title}.mp3")
+        return cached_path, video_title
 
     except Exception as e:
         raise
@@ -242,6 +323,7 @@ def run_separation(input_path, model_filename='UVR_MDXNET_KARA_2.onnx',
             stderr=subprocess.STDOUT,
             text=True,
             encoding='utf-8',
+            errors='replace',
             universal_newlines=True,
             bufsize=1
         )
@@ -305,7 +387,7 @@ def run_rvc_conversion(input_path, model_pth_path, pitch, progress_callback=None
     """מריץ המרת קול עם RVC - כמו בקוד המקורי"""
     try:
         if progress_callback:
-            progress_callback(0.0, "Voice conversion...")
+            progress_callback(0.0, "Processing vocals...")
 
         output_path = os.path.join(OUTPUT_DIR, f"{uuid.uuid4()}.wav")
         command = [
@@ -323,6 +405,7 @@ def run_rvc_conversion(input_path, model_pth_path, pitch, progress_callback=None
             stderr=subprocess.STDOUT,
             text=True,
             encoding='utf-8',
+            errors='replace',
             universal_newlines=True,
             bufsize=1
         )
@@ -344,7 +427,7 @@ def run_rvc_conversion(input_path, model_pth_path, pitch, progress_callback=None
                         if abs(percent - last_percent) >= 5:
                             last_percent = percent
                             if progress_callback:
-                                progress_callback(percent / 100, f"Converting... {percent:.0f}%")
+                                progress_callback(percent / 100, f"Processing... {percent:.0f}%")
                     except:
                         pass
                 else:
@@ -362,7 +445,7 @@ def run_rvc_conversion(input_path, model_pth_path, pitch, progress_callback=None
             raise Exception("RVC did not create valid output file")
 
         if progress_callback:
-            progress_callback(1.0, "Voice conversion complete")
+            progress_callback(1.0, "Processing complete")
 
         return final_output_path
 
@@ -385,7 +468,7 @@ def merge_audio(input_paths, output_path, progress_callback=None):
 
         command.extend(['-filter_complex', filter_complex, '-c:a', 'libmp3lame', '-q:a', '2', output_path])
 
-        result = subprocess.run(command, capture_output=True, text=True, encoding='utf-8')
+        result = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
         if result.returncode != 0:
             raise Exception(f"Merge failed: {result.stderr}")
@@ -423,7 +506,7 @@ def apply_speed_pitch(input_path, speed=1.07, pitch_shift=1.03, progress_callbac
             output_path
         ]
 
-        result = subprocess.run(command, capture_output=True, text=True, encoding='utf-8')
+        result = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
         if result.returncode != 0:
             raise Exception(f"Speed/pitch modification failed: {result.stderr}")
@@ -462,12 +545,13 @@ def clear_youtube_cache():
 
 # ====== הפונקציה הראשית לעיבוד ======
 
-def process_song(youtube_url, audio_file, heavy_processing, output_filename, progress=gr.Progress()):
+def process_song(youtube_url, search_query, search_result, audio_file, heavy_processing, progress=gr.Progress()):
     """
     פונקציה ראשית לעיבוד שיר
     מיושמת בדיוק כמו runLocalChangesongForCover + שלבי העיבוד במקור
     """
     temp_files = []
+    video_title = None
 
     def update_progress(value, desc):
         """עדכון התקדמות"""
@@ -475,18 +559,24 @@ def process_song(youtube_url, audio_file, heavy_processing, output_filename, pro
 
     try:
         # שלב 1: קבלת קובץ האודיו המקורי
-        progress(0.05, desc="Preparing file...")
+        progress(0.05, desc="Preparing...")
+
+        # אם נבחרה תוצאת חיפוש
+        if search_result and search_result not in ["Results", "Click Search button first", "No results found", "Search failed - try again"]:
+            # search_result הוא URL
+            youtube_url = search_result
 
         if youtube_url and youtube_url.strip():
-            source_audio = download_youtube_audio(
+            source_audio, video_title = download_youtube_audio(
                 youtube_url.strip(),
-                lambda p, d: update_progress(0.05 + p * 0.1, d)
+                lambda p, d: update_progress(0.1 + p * 0.1, d)
             )
             # Don't add to temp_files - keep YouTube cache
         elif audio_file is not None:
             source_audio = audio_file
+            video_title = None
         else:
-            return None, "Please enter YouTube URL or upload audio file"
+            return None, "Please provide a song (search, URL, or upload file)"
 
         if not os.path.exists(source_audio):
             return None, "Audio file not found"
@@ -522,7 +612,7 @@ def process_song(youtube_url, audio_file, heavy_processing, output_filename, pro
         model_pth_path, model_pitch = prepare_model_files(model_name)
 
         # שלב 4: המרת ה-vocals עם RVC (pitch=0 כמו בקוד המקורי שורה 10531)
-        progress(0.55, desc=f"Voice conversion with {model_name} model...")
+        progress(0.55, desc=f"Processing with {model_name}...")
         new_vocals_path = run_rvc_conversion(
             vocals_path,
             model_pth_path,
@@ -550,14 +640,13 @@ def process_song(youtube_url, audio_file, heavy_processing, output_filename, pro
             progress_callback=lambda p, d: update_progress(0.85 + p * 0.15, d)
         )
 
-        # Rename to custom filename if provided
-        if output_filename and output_filename.strip():
-            safe_name = "".join(c for c in output_filename.strip() if c.isalnum() or c in (' ', '-', '_')).strip()
-            if safe_name:
-                final_output = os.path.join(OUTPUT_DIR, f"{safe_name}.mp3")
-                shutil.move(temp_output, final_output)
-            else:
-                final_output = temp_output
+        # Rename using video title
+        if video_title:
+            # שימוש בשם השיר מיוטיוב
+            safe_name = "".join(c for c in video_title if c.isalnum() or c in (' ', '-', '_')).strip()
+            safe_name = f"{safe_name} - processed"
+            final_output = os.path.join(OUTPUT_DIR, f"{safe_name}.mp3")
+            shutil.move(temp_output, final_output)
         else:
             final_output = temp_output
 
@@ -608,109 +697,467 @@ def create_interface():
 
     # בדיקת yt-dlp
     try:
-        result = subprocess.run(['yt-dlp', '--version'], capture_output=True, text=True)
+        result = subprocess.run(['yt-dlp', '--version'], capture_output=True, text=True, encoding='utf-8', errors='replace')
         yt_dlp_version = result.stdout.strip()
         tools_status.append(f"✅ yt-dlp: {yt_dlp_version}")
     except:
-        tools_status.append("❌ yt-dlp: לא מותקן")
+        tools_status.append("❌ yt-dlp: Not installed")
 
     # בדיקת ffmpeg
     try:
-        result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)
+        result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True, encoding='utf-8', errors='replace')
         ffmpeg_version = result.stdout.split('\n')[0].split('version')[1].split()[0]
         tools_status.append(f"✅ ffmpeg: {ffmpeg_version}")
     except:
-        tools_status.append("❌ ffmpeg: לא מותקן")
+        tools_status.append("❌ ffmpeg: Not installed")
 
     tools_status_text = "\n".join(tools_status)
 
+    # Custom CSS
+    custom_css = """
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        .gradio-container {
+            max-width: none !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 15px 40px !important;
+        }
+
+        .main.svelte-1cl284s {
+            max-width: none !important;
+            width: 100% !important;
+            margin: 0 !important;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            width: 100% !important;
+        }
+
+        .header-section h1 {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 6px 0;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .header-section p {
+            color: rgba(255,255,255,0.95);
+            font-size: 14px;
+            margin: 0;
+            font-weight: 400;
+        }
+
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            font-size: 22px;
+        }
+
+        /* Remove gaps in output section */
+        .output-section audio {
+            margin-top: 0 !important;
+        }
+
+        .status-box {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(132, 250, 176, 0.3);
+        }
+
+        .feature-box {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 12px 16px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .feature-box strong {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .gradio-container .wrap {
+            gap: 6px !important;
+        }
+
+        .tabs {
+            gap: 0 !important;
+        }
+
+        /* Hide duplicate progress bars */
+        .progress-text {
+            display: none !important;
+        }
+
+        .wrap.svelte-1cl284s {
+            gap: 6px !important;
+        }
+
+        /* Make columns wider and responsive */
+        .col {
+            min-width: 0 !important;
+            flex: 1 !important;
+        }
+
+        /* Expand rows to full width */
+        .row {
+            width: 100% !important;
+            gap: 30px !important;
+        }
+
+        /* Dropdown styling */
+        select, .dropdown {
+            font-size: 14px !important;
+            width: 100% !important;
+        }
+
+        /* Audio player full width */
+        audio {
+            width: 100% !important;
+        }
+
+        /* Full width form elements */
+        .form {
+            width: 100% !important;
+        }
+
+        .block {
+            width: 100% !important;
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border: none !important;
+            font-weight: 700 !important;
+            font-size: 18px !important;
+            padding: 18px 40px !important;
+            transition: all 0.3s ease !important;
+            width: 100% !important;
+            margin: 0 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+        }
+
+        button.primary:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5) !important;
+        }
+
+        button.primary:active {
+            transform: translateY(0px) !important;
+        }
+
+        .tab-nav button {
+            font-weight: 600 !important;
+            font-size: 15px !important;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 0;
+        }
+
+        .info-panel h3 {
+            color: #d35400;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px 0;
+            color: #2d3748;
+            font-size: 14px;
+        }
+
+
+        input[type="text"], textarea {
+            border-radius: 8px !important;
+            border: 2px solid #e2e8f0 !important;
+            font-size: 15px !important;
+            width: 100% !important;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+        }
+
+        .tabs {
+            margin-bottom: 0 !important;
+        }
+
+        .tab-nav {
+            border-radius: 10px 10px 0 0 !important;
+            overflow: hidden;
+        }
+
+    </style>
+    """
+
     with gr.Blocks(
-        title="Suno Song Processor - By PresidentPikachu",
-        theme=gr.themes.Soft(primary_hue="purple", secondary_hue="blue")
+        title="🎵 Suno Song Processor",
+        theme=gr.themes.Soft(
+            primary_hue="purple",
+            secondary_hue="blue",
+            neutral_hue="slate",
+            font=["Inter", "sans-serif"]
+        ),
+        css=custom_css
     ) as demo:
-        gr.Markdown("""
-        # Suno Song Processor - By PresidentPikachu
-        Just process any song and the output will pass any suno check.
+
+        # Header
+        gr.HTML("""
+        <div class="header-section">
+            <h1>🎵 Suno Song Processor</h1>
+            <p>Process any song to bypass Suno copyright detection • By PresidentPikachu</p>
+        </div>
         """)
 
         if not models_loaded:
-            gr.Warning("Models missing! Ensure local_models.json exists with Hack and Guitar models")
+            gr.Warning("⚠️ Models missing! Ensure local_models.json exists with required models")
 
-        with gr.Accordion("System Status", open=False):
+        # Main Processing Area
+        with gr.Row(equal_height=False):
+            # Input Column
+            with gr.Column(scale=1):
+                gr.HTML('<div class="section-title"><span class="section-icon">📥</span> Input Source</div>')
+
+                with gr.Tabs() as input_tabs:
+                    with gr.Tab("🔍 Search Song"):
+                        search_query = gr.Textbox(
+                            label="",
+                            placeholder="Search song on YouTube (e.g. Bohemian Rhapsody Queen)",
+                            lines=1,
+                            max_lines=1,
+                            show_label=False
+                        )
+                        search_btn = gr.Button("🔍 Search YouTube", size="sm", variant="secondary")
+                        search_result = gr.Dropdown(
+                            label="Select Result (choose from 3 options)",
+                            choices=["Results"],
+                            value="Results",
+                            interactive=True,
+                            container=True
+                        )
+
+                    with gr.Tab("🎬 YouTube URL"):
+                        youtube_url = gr.Textbox(
+                            label="",
+                            placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                            lines=1,
+                            max_lines=1,
+                            show_label=False
+                        )
+
+                    with gr.Tab("📁 Upload File"):
+                        audio_file = gr.Audio(
+                            label="",
+                            type="filepath",
+                            show_label=False
+                        )
+
+                gr.HTML('<div style="margin: 8px 0;"></div>')
+
+                process_btn = gr.Button(
+                    "🚀 Process Song",
+                    variant="primary",
+                    size="lg",
+                    elem_classes="primary"
+                )
+
+                gr.HTML('<div style="margin: 8px 0;"></div>')
+
+                heavy_processing = gr.Checkbox(
+                    label="⚡ Enhanced Processing (use only if regular fails)",
+                    value=False
+                )
+
+                gr.HTML('<div style="margin: 15px 0;"></div>')
+
+                # Info Panel
+                gr.HTML("""
+                <div class="info-panel">
+                    <h3>ℹ️ How to Use</h3>
+                    <div class="info-item">
+                        <strong>1.</strong> Enter song name or YouTube link
+                    </div>
+                    <div class="info-item">
+                        <strong>2.</strong> Click Process Song
+                    </div>
+                    <div class="info-item">
+                        <strong>3.</strong> Download and upload to Suno
+                    </div>
+                </div>
+                """)
+
+            # Output Column
+            with gr.Column(scale=1, elem_classes="output-section"):
+                gr.HTML('<div class="section-title"><span class="section-icon">🎧</span> Output</div>')
+
+                output_audio = gr.Audio(
+                    label="",
+                    type="filepath",
+                    interactive=False,
+                    show_label=False,
+                    container=False
+                )
+
+                status_text = gr.HTML(
+                    value='<div class="status-box">Waiting for input...</div>'
+                )
+
+                output_filename = gr.Textbox(visible=False)
+
+        # System Status Accordion
+        with gr.Accordion("🔧 System Status & Tools", open=False):
             gr.Markdown(f"""
-**Tools:**
+### 🛠️ Installed Tools
 ```
 {tools_status_text}
 ```
 
-**Models:** {len(local_models)} | **Cache:** {len(youtube_audio_cache)} files
+### 📊 Statistics
+- **Models Available:** {len(local_models)}
+- **Cached YouTube Files:** {len(youtube_audio_cache)}
+- **Processing Mode:** GPU Accelerated (CUDA) if available
             """)
 
-            clear_cache_btn = gr.Button("Clear YouTube Cache", variant="secondary", size="sm")
-            cache_status = gr.Textbox(label="Status", lines=1, interactive=False)
+            with gr.Row():
+                clear_cache_btn = gr.Button("🗑️ Clear YouTube Cache", variant="secondary", size="sm")
+                cache_status = gr.Textbox(label="Cache Status", lines=1, interactive=False, show_label=False)
 
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### Input")
-
-                with gr.Tabs():
-                    with gr.Tab("YouTube"):
-                        youtube_url = gr.Textbox(
-                            label="YouTube URL",
-                            placeholder="https://www.youtube.com/watch?v=...",
-                            lines=1
-                        )
-                    with gr.Tab("File"):
-                        audio_file = gr.Audio(
-                            label="Upload Audio File",
-                            type="filepath"
-                        )
-
-                gr.Markdown("---")
-
-                heavy_processing = gr.Checkbox(
-                    label="Enhanced Processing",
-                    value=False
-                )
-
-                output_filename = gr.Textbox(
-                    label="Output Filename (optional)",
-                    placeholder="e.g., Cant help falling in love",
-                    lines=1
-                )
-
-                process_btn = gr.Button(
-                    "Process Song",
-                    variant="primary",
-                    size="lg"
-                )
-
-            with gr.Column(scale=1):
-                gr.Markdown("### Output")
-
-                output_audio = gr.Audio(
-                    label="Processed Song",
-                    type="filepath",
-                    interactive=False
-                )
-
-                status_text = gr.Markdown(
-                    value="Waiting for input...",
-                    elem_classes=["status-box"]
-                )
+        # Footer
+        gr.HTML("""
+        <div class="feature-box">
+            <strong>💡 Tip:</strong>
+            Use Search to find any song instantly. Only enable Enhanced Mode if regular processing doesn't work.
+        </div>
+        """)
 
         gr.Markdown("""
         ---
-        **Technical Details:**
-        - Local processing on your machine
-        - GPU with CUDA recommended for faster processing
-        - Files cached for reuse
+        <div style="text-align: center; color: #718096; font-size: 14px; padding: 20px;">
+            <strong>Suno Song Processor</strong> • Made by PresidentPikachu<br>
+            Bypass copyright detection • Upload any song to Suno
+        </div>
         """)
 
-        # חיבור הכפתור לפונקציה
+        # Event Handlers
+        # Global storage for search results (mapping display -> URL)
+        search_results_map = {}
+
+        def handle_search(query):
+            """טיפול בחיפוש - מחזיר רשימת אפשרויות"""
+            nonlocal search_results_map
+
+            if not query or not query.strip():
+                search_results_map = {}
+                return gr.Dropdown(
+                    choices=["Results"],
+                    value="Results",
+                    label="Select Result"
+                )
+
+            try:
+                results = search_youtube(query.strip())
+                if not results:
+                    search_results_map = {}
+                    return gr.Dropdown(
+                        choices=["No results found"],
+                        value="No results found",
+                        label="Select Result"
+                    )
+
+                # שמירת mapping: display -> URL
+                search_results_map = {}
+                display_choices = []
+                for r in results:
+                    display = r['display']
+                    search_results_map[display] = r['url']
+                    display_choices.append(display)
+
+                return gr.Dropdown(
+                    choices=display_choices,
+                    value=display_choices[0] if display_choices else "No results found",
+                    label="Select Result"
+                )
+            except Exception as e:
+                error_msg = str(e)
+                print(f"❌ Search error: {error_msg}")
+                search_results_map = {}
+                return gr.Dropdown(
+                    choices=["Search failed - try again"],
+                    value="Search failed - try again",
+                    label="Select Result"
+                )
+
+        def process_with_status_update(youtube_url, search_query, search_result_display, audio_file, heavy_processing):
+            nonlocal search_results_map
+
+            # המרת הבחירה ל-URL
+            actual_search_result = ""
+            if search_result_display and search_result_display not in ["Results", "Click Search button first", "No results found", "Search failed - try again"]:
+                if search_result_display in search_results_map:
+                    actual_search_result = search_results_map[search_result_display]
+
+            result_audio, result_msg = process_song(
+                youtube_url, search_query, actual_search_result, audio_file, heavy_processing
+            )
+
+            if result_audio:
+                status_html = f'<div class="status-box" style="background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);">✅ {result_msg}</div>'
+            else:
+                status_html = f'<div class="status-box" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">❌ {result_msg}</div>'
+
+            return result_audio, status_html
+
+        # חיבור כפתור החיפוש
+        search_btn.click(
+            fn=handle_search,
+            inputs=[search_query],
+            outputs=[search_result]
+        )
+
+        # חיבור כפתור Process
         process_btn.click(
-            fn=process_song,
-            inputs=[youtube_url, audio_file, heavy_processing, output_filename],
+            fn=process_with_status_update,
+            inputs=[youtube_url, search_query, search_result, audio_file, heavy_processing],
             outputs=[output_audio, status_text]
         )
 
