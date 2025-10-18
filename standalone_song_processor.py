@@ -629,7 +629,7 @@ def create_interface():
         theme=gr.themes.Soft(primary_hue="purple", secondary_hue="blue")
     ) as demo:
         gr.Markdown("""
-        # Suno Song Processor - By PresidentPikachu Song Processor
+        # Suno Song Processor - By PresidentPikachu
         Just process any song and the output will pass any suno check.
         """)
 
