@@ -133,7 +133,7 @@ pip install gradio==5.42.0
 echo ""
 echo "Installing additional audio separation components..."
 pip install --no-deps audio-separator==0.36.1 numpy==1.26.4 torchcrepe
-pip install onnx
+pip install onnx imageio-ffmpeg
 
 # Download models
 echo ""
