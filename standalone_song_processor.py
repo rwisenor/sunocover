@@ -495,7 +495,7 @@ def process_song(youtube_url, audio_file, heavy_processing, output_filename, pro
         if heavy_processing:
             model_name = 'האק'
             separation_model = 'bs_roformer_vocals_gabox.ckpt'  # Fallback #2
-            processing_type = "Enhanced Processing"
+            processing_type = "Enhanced Processing - Check this ONLY if the first try blocked by suno"
         else:
             model_name = 'האק'
             separation_model = 'UVR_MDXNET_KARA_2.onnx'  # Default
