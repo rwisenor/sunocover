@@ -1222,7 +1222,7 @@ def create_interface():
         # Global storage for search results (mapping display -> URL)
         search_results_map = {}
 
-        def handle_search(query):
+        def handle_search(query, progress=gr.Progress()):
             """טיפול בחיפוש - מחזיר רשימת אפשרויות"""
             nonlocal search_results_map
 
@@ -1234,15 +1234,11 @@ def create_interface():
                     gr.Button(interactive=True)
                 )
 
-            # תחילת חיפוש - הצגת אינדיקציה
-            yield (
-                gr.HTML(value='<div style="background: linear-gradient(135deg, #ffecd2 0%, #ffe0b2 100%); padding: 12px; border-radius: 8px; text-align: center; font-weight: 600; color: #e65100; margin: 8px 0;">⏳ Searching YouTube...</div>'),
-                gr.Radio(choices=[], value=None, visible=False, label="Select Song"),
-                gr.Button(interactive=False)
-            )
-
             try:
+                progress(0, desc="Searching YouTube...")
                 results = search_youtube(query.strip())
+                progress(1.0, desc="Search complete")
+
                 if not results:
                     search_results_map = {}
                     return (
@@ -1260,7 +1256,7 @@ def create_interface():
                     display_choices.append(display)
 
                 return (
-                    gr.HTML(value=''),
+                    gr.HTML(value='<div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 10px; border-radius: 8px; text-align: center; font-weight: 600; color: #155724; margin: 8px 0;">✅ Found {len(display_choices)} songs</div>'),
                     gr.Radio(
                         choices=display_choices,
                         value=display_choices[0] if display_choices else None,
@@ -1274,9 +1270,9 @@ def create_interface():
                 print(f"❌ Search error: {error_msg}")
                 search_results_map = {}
                 return (
-                    gr.HTML(value=''),
-                    gr.Radio(choices=["Search failed - try again"], value=None, visible=True, label="Select Song"),
-                    gr.Button(interactive=False)
+                    gr.HTML(value=f'<div style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); padding: 10px; border-radius: 8px; text-align: center; font-weight: 600; color: #721c24; margin: 8px 0;">❌ Search failed: {error_msg}</div>'),
+                    gr.Radio(choices=[], value=None, visible=False, label="Select Song"),
+                    gr.Button(interactive=True)
                 )
 
         def process_with_status_update(youtube_url, search_query, search_result_display, audio_file, heavy_processing):
