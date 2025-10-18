@@ -21,24 +21,22 @@ nvidia-smi >nul 2>&1 && (
     set HAS_CUDA=1
 ) || echo No GPU - CPU only
 
-:: Create directories
 echo.
-echo [3/7] Creating directories...
-for %%d in (MyDownloadedModels temp_outputs media_cache unpacked_models separation_outputs RVC-v2-UI\rvc_models) do (
-    if not exist "%%d" mkdir "%%d" 2>nul
-)
+echo [3/11] Creating directories...
+for %%d in (MyDownloadedModels temp_outputs media_cache unpacked_models separation_outputs) do if not exist "%%d" (mkdir "%%d" & echo Created %%d)
 
 echo.
-echo [4/7] Setting up RVC...
+echo [4/11] Cloning RVC-v2-UI...
 if not exist "RVC-v2-UI\src" (
-    git clone https://github.com/PseudoRAM/RVC-v2-UI.git --depth 1 2>nul || (
-        curl -sL "https://github.com/PseudoRAM/RVC-v2-UI/archive/main.zip" -o rvc.zip
+    git clone https://github.com/PseudoRAM/RVC-v2-UI.git 2>nul || (
+        curl -L "https://github.com/PseudoRAM/RVC-v2-UI/archive/main.zip" -o rvc.zip
         tar -xf rvc.zip && move RVC-v2-UI-main RVC-v2-UI >nul && del rvc.zip
     )
-    echo RVC-v2-UI cloned successfully
+    echo Cloned
 ) else (
-    echo RVC-v2-UI already exists
+    echo Exists
 )
+if not exist "RVC-v2-UI\rvc_models" mkdir RVC-v2-UI\rvc_models
 
 
 :: Create virtual environment
@@ -90,8 +88,7 @@ pip install gradio==5.42.0
 :: Audio separator minimal deps (only what wasn't in requirements.txt or was manually installed)
 echo.
 echo Installing additional audio separation components...
-pip install --no-deps diffq-fixed==0.2.4
-pip install --no-deps audio-separator==0.36.1
+pip install --no-deps audio-separator==0.36.1 numpy==1.26.4 torchcrepe
 pip install onnx
 
 :: Download models
