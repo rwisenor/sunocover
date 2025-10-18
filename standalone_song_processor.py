@@ -998,6 +998,17 @@ def create_interface():
             cursor: not-allowed !important;
         }
 
+        /* Loading animation for search button */
+        #search-btn.generating {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            animation: pulse 1.5s ease-in-out infinite !important;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
         .info-panel {
             background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
             padding: 15px;
@@ -1085,7 +1096,9 @@ def create_interface():
                                 show_label=False,
                                 scale=3
                             )
-                            search_btn = gr.Button("🔍 Search YouTube", variant="secondary", scale=1, size="lg")
+                            search_btn = gr.Button("🔍 Search YouTube", variant="secondary", scale=1, size="lg", elem_id="search-btn")
+
+                        search_status = gr.HTML(value='', visible=True)
 
                         search_result = gr.Radio(
                             label="Select Song",
@@ -1216,15 +1229,15 @@ def create_interface():
             if not query or not query.strip():
                 search_results_map = {}
                 return (
+                    gr.HTML(value=''),
                     gr.Radio(choices=[], value=None, visible=False, label="Select Song"),
-                    gr.Button(interactive=False, value="🔍 Search YouTube"),
-                    gr.Button(interactive=False)
+                    gr.Button(interactive=True)
                 )
 
-            # Update button to show searching
+            # תחילת חיפוש - הצגת אינדיקציה
             yield (
+                gr.HTML(value='<div style="background: linear-gradient(135deg, #ffecd2 0%, #ffe0b2 100%); padding: 12px; border-radius: 8px; text-align: center; font-weight: 600; color: #e65100; margin: 8px 0;">⏳ Searching YouTube...</div>'),
                 gr.Radio(choices=[], value=None, visible=False, label="Select Song"),
-                gr.Button(interactive=False, value="⏳ Searching..."),
                 gr.Button(interactive=False)
             )
 
@@ -1233,8 +1246,8 @@ def create_interface():
                 if not results:
                     search_results_map = {}
                     return (
+                        gr.HTML(value=''),
                         gr.Radio(choices=["No results found"], value=None, visible=True, label="Select Song"),
-                        gr.Button(interactive=True, value="🔍 Search YouTube"),
                         gr.Button(interactive=False)
                     )
 
@@ -1247,13 +1260,13 @@ def create_interface():
                     display_choices.append(display)
 
                 return (
+                    gr.HTML(value=''),
                     gr.Radio(
                         choices=display_choices,
                         value=display_choices[0] if display_choices else None,
                         visible=True,
                         label="Select Song"
                     ),
-                    gr.Button(interactive=True, value="🔍 Search YouTube"),
                     gr.Button(interactive=True)
                 )
             except Exception as e:
@@ -1261,8 +1274,8 @@ def create_interface():
                 print(f"❌ Search error: {error_msg}")
                 search_results_map = {}
                 return (
+                    gr.HTML(value=''),
                     gr.Radio(choices=["Search failed - try again"], value=None, visible=True, label="Select Song"),
-                    gr.Button(interactive=True, value="🔍 Search YouTube"),
                     gr.Button(interactive=False)
                 )
 
@@ -1291,7 +1304,7 @@ def create_interface():
         search_btn.click(
             fn=handle_search,
             inputs=[search_query],
-            outputs=[search_result, search_btn, process_btn]
+            outputs=[search_status, search_result, process_btn]
         )
 
         # Enable/disable process button based on input

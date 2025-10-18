@@ -1,6 +1,6 @@
 # SUNO Song Processor
 
-Standalone app for song processing to work in suno
+Standalone app for song processing to Bypass uploads restrictions in suno
 
 ## Install
 
