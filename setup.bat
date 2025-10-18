@@ -148,7 +148,7 @@ if %MINOR% GTR 10 (
     (
         echo @echo off
         echo set "PATH=%%CD%%\python310;%%CD%%\python310\Scripts;%%PATH%%"
-        echo start /B python standalone_song_processor.py
+        echo start /B python app.py
         echo timeout /t 3 /nobreak ^>nul
         echo start http://localhost:7860
         echo pause
@@ -157,7 +157,7 @@ if %MINOR% GTR 10 (
     (
         echo @echo off
         echo call venv\Scripts\activate.bat
-        echo start /B python standalone_song_processor.py
+        echo start /B python app.py
         echo timeout /t 3 /nobreak ^>nul
         echo start http://localhost:7860
         echo pause

@@ -159,7 +159,7 @@ if [ "$MINOR_VERSION" -gt 10 ]; then
     cat > start.sh << 'EOF'
 #!/bin/bash
 export PATH="$(pwd)/python310/bin:$PATH"
-python3 standalone_song_processor.py &
+python3 app.py &
 sleep 3
 if [[ "$OSTYPE" == "darwin"* ]]; then
     open http://localhost:7860
@@ -172,7 +172,7 @@ else
     cat > start.sh << 'EOF'
 #!/bin/bash
 source venv/bin/activate
-python standalone_song_processor.py &
+python app.py &
 sleep 3
 if [[ "$OSTYPE" == "darwin"* ]]; then
     open http://localhost:7860

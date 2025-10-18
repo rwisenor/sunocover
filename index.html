@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 Suno Song Processor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+        
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo-icon">🎵</div>
+                <div>
+                    <h1>Suno Song Processor</h1>
+                    <p class="subtitle">Bypass copyright detection • Upload any song to Suno</p>
+                </div>
+            </div>
+            <div class="credit">By PresidentPikachu</div>
+        </header>
+
+        <main class="main-content">
+            <div class="workflow-container">
+                <div class="input-section card">
+                    <div class="card-header">
+                        <span class="icon">📥</span>
+                        <h2>Input Source</h2>
+                    </div>
+                    
+                    <div class="tabs">
+                        <button class="tab active" data-tab="search">🔍 Search Song</button>
+                        <button class="tab" data-tab="youtube">🎬 YouTube URL</button>
+                        <button class="tab" data-tab="upload">📁 Upload File</button>
+                    </div>
+
+                    <div class="tab-content active" id="search">
+                        <div class="search-bar">
+                            <input type="text" placeholder="Search song on YouTube (e.g. Bohemian Rhapsody Queen)" id="searchInput">
+                            <button class="btn-primary" id="searchBtn">
+                                <span class="btn-icon">🔍</span>
+                                Search
+                            </button>
+                        </div>
+
+                        <div class="results-container" id="resultsContainer" style="display: none;">
+                            <div class="results-header">
+                                <span class="success-badge">✅ Found 3 songs</span>
+                            </div>
+                            <div class="song-list" id="songList">
+                                <!-- Results will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="youtube">
+                        <div class="url-input-container">
+                            <input type="text" placeholder="Paste YouTube URL here" id="youtubeUrl">
+                            <button class="btn-primary" id="urlBtn">
+                                <span class="btn-icon">🔗</span>
+                                Load
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="upload">
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-icon">📁</div>
+                            <p>Drag & drop your audio file here</p>
+                            <p class="upload-hint">or click to browse</p>
+                            <input type="file" id="fileInput" accept="audio/*" hidden>
+                        </div>
+                    </div>
+
+                    <div class="action-section">
+                        <button class="btn-process" id="processBtn">
+                            <span class="btn-icon">🚀</span>
+                            Process Song
+                            <div class="btn-glow"></div>
+                        </button>
+                        
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="enhancedMode">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">⚡ Enhanced Processing (use only if regular fails)</span>
+                        </label>
+                    </div>
+
+                    <div class="info-panel">
+                        <div class="info-title">ℹ️ How to Use</div>
+                        <div class="info-steps">
+                            <div class="info-step">
+                                <span class="step-number">1</span>
+                                <span>Enter song name or YouTube link</span>
+                            </div>
+                            <div class="info-step">
+                                <span class="step-number">2</span>
+                                <span>Click Process Song</span>
+                            </div>
+                            <div class="info-step">
+                                <span class="step-number">3</span>
+                                <span>Download and upload to Suno</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="output-section card">
+                    <div class="card-header">
+                        <span class="icon">🎧</span>
+                        <h2>Output</h2>
+                    </div>
+                    
+                    <div class="output-placeholder" id="outputPlaceholder">
+                        <div class="waveform-animation">
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                        </div>
+                        <p>Processed audio will appear here</p>
+                    </div>
+
+                    <div class="audio-player" id="audioPlayer" style="display: none;">
+                        <div class="player-visual">
+                            <div class="album-art">🎵</div>
+                            <div class="song-info">
+                                <div class="song-title" id="songTitle">Song Title</div>
+                                <div class="song-status">✓ Ready for Suno</div>
+                            </div>
+                        </div>
+                        <audio controls id="audioElement">
+                            <source id="audioSource" src="" type="audio/mpeg">
+                        </audio>
+                        <button class="btn-download" id="downloadBtn">
+                            <span class="btn-icon">⬇️</span>
+                            Download Processed Song
+                        </button>
+                    </div>
+
+                    <div class="processing-status" id="processingStatus" style="display: none;">
+                        <div class="status-spinner"></div>
+                        <p class="status-text" id="statusText">Processing...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="system-panel card collapsed" id="systemPanel">
+                <button class="panel-toggle" id="panelToggle">
+                    <span>🔧 System Status & Tools</span>
+                    <span class="toggle-icon">▼</span>
+                </button>
+                <div class="panel-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">yt-dlp</div>
+                            <div class="stat-value">✅ 2025.10.14</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">ffmpeg</div>
+                            <div class="stat-value">✅ 7.1.1</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Models Available</div>
+                            <div class="stat-value">2</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Cached Files</div>
+                            <div class="stat-value" id="cacheCount">4</div>
+                        </div>
+                    </div>
+                    <button class="btn-secondary" id="clearCache">
+                        <span class="btn-icon">🗑️</span>
+                        Clear YouTube Cache
+                    </button>
+                </div>
+            </div>
+
+            <div class="tip-box">
+                <span class="tip-icon">💡</span>
+                <span>Use Search to find any song instantly. Only enable Enhanced Mode if regular processing doesn't work.</span>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

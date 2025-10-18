@@ -28,3 +28,4 @@ samplerate==0.1.0
 # Utils
 yt-dlp
 ffmpeg-python==0.2.0
+Flask==3.0.0
