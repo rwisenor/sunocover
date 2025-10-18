@@ -625,18 +625,12 @@ def create_interface():
     tools_status_text = "\n".join(tools_status)
 
     with gr.Blocks(
-        title="RVC Song Processor",
+        title="Suno Song Processor - By PresidentPikachu",
         theme=gr.themes.Soft(primary_hue="purple", secondary_hue="blue")
     ) as demo:
         gr.Markdown("""
-        # RVC Song Processor
-
-        **Processing Steps:**
-        1. Download from YouTube / Upload file
-        2. Separate vocals from instrumental
-        3. Voice conversion with RVC
-        4. Merge new vocals + instrumental
-        5. Speed x1.07 and pitch x1.03 modification
+        # Suno Song Processor - By PresidentPikachu Song Processor
+        Just process any song and the output will pass any suno check.
         """)
 
         if not models_loaded:
