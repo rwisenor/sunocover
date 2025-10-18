@@ -7,10 +7,32 @@ echo ============================================
 echo   Suno Song Processor - By PresidentPikachu
 echo ============================================
 echo.
-:: Check Python
+:: Check Python version and use 3.10 if system Python > 3.10
 echo [1/7] Checking Python...
+set PYTHON_CMD=python
 python --version >nul 2>&1 || (echo ERROR: Python not found & pause & exit /b 1)
-for /f "tokens=2" %%i in ('python --version 2^>^&1') do echo Found Python %%i
+
+for /f "tokens=2 delims=." %%a in ('python --version 2^>^&1') do (
+    for /f "tokens=1" %%b in ("%%a") do set MINOR=%%b
+)
+
+if %MINOR% GTR 10 (
+    echo System Python is 3.%MINOR% ^(too new^). Using embedded Python 3.10...
+    echo Downloading Python 3.10.11 embedded...
+    curl -L "https://www.python.org/ftp/python/3.10.11/python-3.10.11-embed-amd64.zip" -o python310.zip
+    mkdir python310
+    tar -xf python310.zip -C python310
+    del python310.zip
+
+    echo Enabling pip in embedded Python...
+    del python310\python310._pth
+    curl -L "https://bootstrap.pypa.io/get-pip.py" -o python310\get-pip.py
+    python310\python.exe python310\get-pip.py
+    set PYTHON_CMD=python310\python.exe
+    echo Using embedded Python 3.10.11
+) else (
+    for /f "tokens=2" %%i in ('python --version 2^>^&1') do echo Using system Python %%i
+)
 
 :: Detect GPU
 echo.
@@ -39,20 +61,23 @@ if not exist "RVC-v2-UI\src" (
 if not exist "RVC-v2-UI\rvc_models" mkdir RVC-v2-UI\rvc_models
 
 
-:: Create virtual environment
+:: Create virtual environment or use embedded Python
 echo.
-echo [5/7] Setting up virtual environment...
-if not exist "venv" (
-    python -m venv venv
-    echo Virtual environment created
+echo [5/7] Setting up Python environment...
+if %MINOR% GTR 10 (
+    echo Using embedded Python 3.10 directly ^(no venv needed^)
+    set "PATH=%CD%\python310;%CD%\python310\Scripts;%PATH%"
+    python -m pip install pip==24.0 --quiet
 ) else (
-    echo Virtual environment already exists
+    if not exist "venv" (
+        %PYTHON_CMD% -m venv venv
+        echo Virtual environment created
+    ) else (
+        echo Virtual environment already exists
+    )
+    call venv\Scripts\activate.bat
+    python -m pip install pip==24.0 --quiet
 )
-
-:: Activate venv
-call venv\Scripts\activate.bat
-
-python -m pip install pip==24.0 --quiet
 
 :: CRITICAL: Install PyTorch FIRST and LOCK IT
 echo.
@@ -119,14 +144,25 @@ if not exist "local_models.json" (
 if not exist "youtube_audio_cache.json" echo {} > youtube_audio_cache.json
 
 :: Create start script
-(
-    echo @echo off
-    echo call venv\Scripts\activate.bat
-    echo start /B python standalone_song_processor.py
-    echo timeout /t 3 /nobreak ^>nul
-    echo start http://localhost:7860
-    echo pause	
-) > start.bat
+if %MINOR% GTR 10 (
+    (
+        echo @echo off
+        echo set "PATH=%%CD%%\python310;%%CD%%\python310\Scripts;%%PATH%%"
+        echo start /B python standalone_song_processor.py
+        echo timeout /t 3 /nobreak ^>nul
+        echo start http://localhost:7860
+        echo pause
+    ) > start.bat
+) else (
+    (
+        echo @echo off
+        echo call venv\Scripts\activate.bat
+        echo start /B python standalone_song_processor.py
+        echo timeout /t 3 /nobreak ^>nul
+        echo start http://localhost:7860
+        echo pause
+    ) > start.bat
+)
 
 :: Verify
 echo.
