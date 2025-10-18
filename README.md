@@ -1,5 +1,7 @@
 # SUNO Song Processor
 
+![Screenshot](screenshot.png)
+
 Standalone app for song processing to Bypass uploads restrictions in suno
 
 ## Install
