@@ -302,7 +302,7 @@ def run_separation(input_path, model_filename='UVR_MDXNET_KARA_2.onnx',
     """מפריד vocals מ-instrumental - כמו בקוד המקורי"""
     try:
         if progress_callback:
-            progress_callback(0.0, f"Separating audio with {model_filename}...")
+            progress_callback(0.0, "Processing audio...")
 
         output_dir = os.path.join(SEPARATION_OUTPUT_DIR, str(uuid.uuid4()))
         os.makedirs(output_dir)
@@ -346,7 +346,7 @@ def run_separation(input_path, model_filename='UVR_MDXNET_KARA_2.onnx',
                         if abs(percent - last_percent) >= 5:  # עדכון כל 5%
                             last_percent = percent
                             if progress_callback:
-                                progress_callback(percent / 100, f"Separating... {percent:.0f}%")
+                                progress_callback(percent / 100, f"Processing audio... {percent:.0f}%")
                     except:
                         pass
                 else:
@@ -376,7 +376,7 @@ def run_separation(input_path, model_filename='UVR_MDXNET_KARA_2.onnx',
             raise Exception("No result from separation script")
 
         if progress_callback:
-            progress_callback(1.0, "Separation complete")
+            progress_callback(1.0, "Processing audio...")
 
         return paths_result
 
@@ -445,7 +445,7 @@ def run_rvc_conversion(input_path, model_pth_path, pitch, progress_callback=None
             raise Exception("RVC did not create valid output file")
 
         if progress_callback:
-            progress_callback(1.0, "Processing complete")
+            progress_callback(1.0, "Processing audio...")
 
         return final_output_path
 
@@ -456,7 +456,7 @@ def merge_audio(input_paths, output_path, progress_callback=None):
     """מאחד מספר קבצי אודיו - כמו בקוד המקורי"""
     try:
         if progress_callback:
-            progress_callback(0.0, "Merging audio...")
+            progress_callback(0.0, "Processing audio...")
 
         command = ['ffmpeg', '-y']
 
@@ -474,7 +474,7 @@ def merge_audio(input_paths, output_path, progress_callback=None):
             raise Exception(f"Merge failed: {result.stderr}")
 
         if progress_callback:
-            progress_callback(1.0, "Merge complete")
+            progress_callback(1.0, "Processing audio...")
 
         return output_path
 
@@ -485,7 +485,7 @@ def apply_speed_pitch(input_path, speed=1.07, pitch_shift=1.03, progress_callbac
     """מחיל שינוי מהירות וpitch' - כמו בקוד המקורי"""
     try:
         if progress_callback:
-            progress_callback(0.0, "Applying speed/pitch modifications...")
+            progress_callback(0.0, "Processing audio...")
 
         output_path = os.path.join(OUTPUT_DIR, f"final_modified_{uuid.uuid4()}.mp3")
 
@@ -512,7 +512,7 @@ def apply_speed_pitch(input_path, speed=1.07, pitch_shift=1.03, progress_callbac
             raise Exception(f"Speed/pitch modification failed: {result.stderr}")
 
         if progress_callback:
-            progress_callback(1.0, "Modifications applied")
+            progress_callback(1.0, "Processing audio...")
 
         return output_path
 
@@ -562,7 +562,7 @@ def process_song(youtube_url, search_query, search_result, audio_file, heavy_pro
         progress(0.05, desc="Preparing...")
 
         # אם נבחרה תוצאת חיפוש
-        if search_result and search_result not in ["Results", "Click Search button first", "No results found", "Search failed - try again"]:
+        if search_result and search_result not in ["No results found", "Search failed - try again", None]:
             # search_result הוא URL
             youtube_url = search_result
 
@@ -585,16 +585,14 @@ def process_song(youtube_url, search_query, search_result, audio_file, heavy_pro
         if heavy_processing:
             model_name = 'האק'
             separation_model = 'bs_roformer_vocals_gabox.ckpt'  # Fallback #2
-            processing_type = "Enhanced Processing - Check this ONLY if the first try blocked by suno"
         else:
             model_name = 'האק'
             separation_model = 'UVR_MDXNET_KARA_2.onnx'  # Default
-            processing_type = "Regular Processing"
 
-        progress(0.15, desc=f"Starting {processing_type}...")
+        progress(0.15, desc="Processing audio...")
 
         # שלב 2: הפרדת vocals מ-instrumental
-        progress(0.2, desc="Separating vocals from instrumental...")
+        progress(0.2, desc="Processing audio...")
         separation_paths = run_separation(
             source_audio,
             model_filename=separation_model,
@@ -608,11 +606,11 @@ def process_song(youtube_url, search_query, search_result, audio_file, heavy_pro
         temp_files.extend([vocals_path, instrumental_path])
 
         # שלב 3: הכנת RVC Model
-        progress(0.5, desc=f"Loading model {model_name}...")
+        progress(0.5, desc="Processing audio...")
         model_pth_path, model_pitch = prepare_model_files(model_name)
 
         # שלב 4: המרת ה-vocals עם RVC (pitch=0 כמו בקוד המקורי שורה 10531)
-        progress(0.55, desc=f"Processing with {model_name}...")
+        progress(0.55, desc="Processing audio...")
         new_vocals_path = run_rvc_conversion(
             vocals_path,
             model_pth_path,
@@ -622,7 +620,7 @@ def process_song(youtube_url, search_query, search_result, audio_file, heavy_pro
         temp_files.append(new_vocals_path)
 
         # שלב 5: איחוד vocals חדש עם instrumental
-        progress(0.75, desc="Merging new vocals with instrumental...")
+        progress(0.75, desc="Processing audio...")
         merged_path = os.path.join(OUTPUT_DIR, f"merged_{uuid.uuid4()}.mp3")
         merge_audio(
             [new_vocals_path, instrumental_path],
@@ -632,7 +630,7 @@ def process_song(youtube_url, search_query, search_result, audio_file, heavy_pro
         temp_files.append(merged_path)
 
         # שלב 6: החלת שינוי מהירות ופיץ' (כמו בשורות 10896-10898)
-        progress(0.85, desc="Applying speed and pitch modifications...")
+        progress(0.85, desc="Processing audio...")
         temp_output = apply_speed_pitch(
             merged_path,
             speed=1.07,
@@ -666,7 +664,7 @@ def process_song(youtube_url, search_query, search_result, audio_file, heavy_pro
                 print(f"⚠️ Cannot delete temp file: {temp_file} - {e}")
 
 
-        success_msg = f"""Complete! Size: {file_size_mb:.2f} MB"""
+        success_msg = f"""Complete!"""
 
         return final_output, success_msg
 
@@ -780,6 +778,26 @@ def create_interface():
             margin-top: 0 !important;
         }
 
+        .output-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .output-section > * {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .output-section .status-box {
+            margin-top: 10px !important;
+            padding: 15px !important;
+        }
+
+        /* Download button styling */
+        .output-section button {
+            margin-top: 12px !important;
+        }
+
         .status-box {
             background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
             padding: 15px;
@@ -841,6 +859,45 @@ def create_interface():
             width: 100% !important;
         }
 
+        /* Radio buttons styling */
+        fieldset.radio-group {
+            border: none !important;
+            padding: 0 !important;
+            margin: 8px 0 !important;
+        }
+
+        .radio-group label {
+            background: white !important;
+            border: 2px solid #e2e8f0 !important;
+            border-radius: 8px !important;
+            padding: 12px 16px !important;
+            margin: 6px 0 !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            display: flex !important;
+            align-items: center !important;
+            font-size: 14px !important;
+        }
+
+        .radio-group label:hover {
+            border-color: #667eea !important;
+            background: #f7fafc !important;
+            transform: translateX(4px) !important;
+        }
+
+        .radio-group input:checked + * {
+            border-color: #667eea !important;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%) !important;
+            font-weight: 600 !important;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2) !important;
+        }
+
+        .radio-group input[type="radio"] {
+            width: 20px !important;
+            height: 20px !important;
+            margin-right: 10px !important;
+        }
+
         /* Audio player full width */
         audio {
             width: 100% !important;
@@ -877,9 +934,68 @@ def create_interface():
             transform: translateY(0px) !important;
         }
 
+        button.primary:disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+        }
+
+        /* Custom progress bar */
+        .progress-bar-wrap {
+            background: #e2e8f0 !important;
+            border-radius: 20px !important;
+            height: 10px !important;
+            overflow: hidden !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
+
+        .progress-bar {
+            height: 10px !important;
+            border-radius: 20px !important;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+            transition: width 0.3s ease !important;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.5) !important;
+        }
+
+        .progress-text {
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            color: #2d3748 !important;
+            margin-bottom: 10px !important;
+            text-align: center !important;
+        }
+
+        .progress-level-inner {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%) !important;
+        }
+
         .tab-nav button {
             font-weight: 600 !important;
             font-size: 15px !important;
+        }
+
+        /* Search button styling */
+        button.secondary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%) !important;
+            color: white !important;
+            border: none !important;
+            font-weight: 700 !important;
+            font-size: 16px !important;
+            padding: 16px 24px !important;
+            border-radius: 10px !important;
+            box-shadow: 0 3px 12px rgba(72, 187, 120, 0.3) !important;
+            transition: all 0.3s ease !important;
+            height: 100% !important;
+        }
+
+        button.secondary:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4) !important;
+        }
+
+        button.secondary:disabled {
+            opacity: 0.7 !important;
+            cursor: not-allowed !important;
         }
 
         .info-panel {
@@ -960,20 +1076,23 @@ def create_interface():
 
                 with gr.Tabs() as input_tabs:
                     with gr.Tab("🔍 Search Song"):
-                        search_query = gr.Textbox(
-                            label="",
-                            placeholder="Search song on YouTube (e.g. Bohemian Rhapsody Queen)",
-                            lines=1,
-                            max_lines=1,
-                            show_label=False
-                        )
-                        search_btn = gr.Button("🔍 Search YouTube", size="sm", variant="secondary")
-                        search_result = gr.Dropdown(
-                            label="Select Result (choose from 3 options)",
-                            choices=["Results"],
-                            value="Results",
+                        with gr.Row():
+                            search_query = gr.Textbox(
+                                label="",
+                                placeholder="Search song on YouTube (e.g. Bohemian Rhapsody Queen)",
+                                lines=1,
+                                max_lines=1,
+                                show_label=False,
+                                scale=3
+                            )
+                            search_btn = gr.Button("🔍 Search YouTube", variant="secondary", scale=1, size="lg")
+
+                        search_result = gr.Radio(
+                            label="Select Song",
+                            choices=[],
+                            value=None,
                             interactive=True,
-                            container=True
+                            visible=False
                         )
 
                     with gr.Tab("🎬 YouTube URL"):
@@ -998,7 +1117,8 @@ def create_interface():
                     "🚀 Process Song",
                     variant="primary",
                     size="lg",
-                    elem_classes="primary"
+                    elem_classes="primary",
+                    interactive=False
                 )
 
                 gr.HTML('<div style="margin: 8px 0;"></div>')
@@ -1038,8 +1158,15 @@ def create_interface():
                     container=False
                 )
 
+                download_btn = gr.DownloadButton(
+                    label="⬇️ Download Processed Song",
+                    variant="primary",
+                    size="lg",
+                    visible=False
+                )
+
                 status_text = gr.HTML(
-                    value='<div class="status-box">Waiting for input...</div>'
+                    value=''
                 )
 
                 output_filename = gr.Textbox(visible=False)
@@ -1088,20 +1215,27 @@ def create_interface():
 
             if not query or not query.strip():
                 search_results_map = {}
-                return gr.Dropdown(
-                    choices=["Results"],
-                    value="Results",
-                    label="Select Result"
+                return (
+                    gr.Radio(choices=[], value=None, visible=False, label="Select Song"),
+                    gr.Button(interactive=False, value="🔍 Search YouTube"),
+                    gr.Button(interactive=False)
                 )
+
+            # Update button to show searching
+            yield (
+                gr.Radio(choices=[], value=None, visible=False, label="Select Song"),
+                gr.Button(interactive=False, value="⏳ Searching..."),
+                gr.Button(interactive=False)
+            )
 
             try:
                 results = search_youtube(query.strip())
                 if not results:
                     search_results_map = {}
-                    return gr.Dropdown(
-                        choices=["No results found"],
-                        value="No results found",
-                        label="Select Result"
+                    return (
+                        gr.Radio(choices=["No results found"], value=None, visible=True, label="Select Song"),
+                        gr.Button(interactive=True, value="🔍 Search YouTube"),
+                        gr.Button(interactive=False)
                     )
 
                 # שמירת mapping: display -> URL
@@ -1112,19 +1246,24 @@ def create_interface():
                     search_results_map[display] = r['url']
                     display_choices.append(display)
 
-                return gr.Dropdown(
-                    choices=display_choices,
-                    value=display_choices[0] if display_choices else "No results found",
-                    label="Select Result"
+                return (
+                    gr.Radio(
+                        choices=display_choices,
+                        value=display_choices[0] if display_choices else None,
+                        visible=True,
+                        label="Select Song"
+                    ),
+                    gr.Button(interactive=True, value="🔍 Search YouTube"),
+                    gr.Button(interactive=True)
                 )
             except Exception as e:
                 error_msg = str(e)
                 print(f"❌ Search error: {error_msg}")
                 search_results_map = {}
-                return gr.Dropdown(
-                    choices=["Search failed - try again"],
-                    value="Search failed - try again",
-                    label="Select Result"
+                return (
+                    gr.Radio(choices=["Search failed - try again"], value=None, visible=True, label="Select Song"),
+                    gr.Button(interactive=True, value="🔍 Search YouTube"),
+                    gr.Button(interactive=False)
                 )
 
         def process_with_status_update(youtube_url, search_query, search_result_display, audio_file, heavy_processing):
@@ -1132,7 +1271,7 @@ def create_interface():
 
             # המרת הבחירה ל-URL
             actual_search_result = ""
-            if search_result_display and search_result_display not in ["Results", "Click Search button first", "No results found", "Search failed - try again"]:
+            if search_result_display and search_result_display not in ["No results found", "Search failed - try again", None]:
                 if search_result_display in search_results_map:
                     actual_search_result = search_results_map[search_result_display]
 
@@ -1141,24 +1280,34 @@ def create_interface():
             )
 
             if result_audio:
+                filename = os.path.basename(result_audio)
                 status_html = f'<div class="status-box" style="background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);">✅ {result_msg}</div>'
+                return result_audio, status_html, gr.DownloadButton(label=f"⬇️ Download: {filename}", value=result_audio, visible=True, variant="primary", size="lg")
             else:
                 status_html = f'<div class="status-box" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">❌ {result_msg}</div>'
-
-            return result_audio, status_html
+                return None, status_html, gr.DownloadButton(visible=False)
 
         # חיבור כפתור החיפוש
         search_btn.click(
             fn=handle_search,
             inputs=[search_query],
-            outputs=[search_result]
+            outputs=[search_result, search_btn, process_btn]
         )
+
+        # Enable/disable process button based on input
+        def check_inputs(yt_url, search_res, audio):
+            has_input = (yt_url and yt_url.strip()) or search_res or audio
+            return gr.Button(interactive=bool(has_input))
+
+        youtube_url.change(fn=check_inputs, inputs=[youtube_url, search_result, audio_file], outputs=[process_btn])
+        search_result.change(fn=check_inputs, inputs=[youtube_url, search_result, audio_file], outputs=[process_btn])
+        audio_file.change(fn=check_inputs, inputs=[youtube_url, search_result, audio_file], outputs=[process_btn])
 
         # חיבור כפתור Process
         process_btn.click(
             fn=process_with_status_update,
             inputs=[youtube_url, search_query, search_result, audio_file, heavy_processing],
-            outputs=[output_audio, status_text]
+            outputs=[output_audio, status_text, download_btn]
         )
 
         clear_cache_btn.click(
