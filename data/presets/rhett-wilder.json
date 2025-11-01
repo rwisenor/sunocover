@@ -1,0 +1,27 @@
+{
+  "artist": "Rhett Wilder",
+  "presets": [
+    {
+      "id": "rhett-wilder-anthem",
+      "label": "Anthem",
+      "status": "ready",
+      "notes": "Arena-ready choruses with soaring vocals and euphoric synth swells."
+    },
+    {
+      "id": "rhett-wilder-intimate",
+      "label": "Intimate",
+      "status": "ready",
+      "notes": "Acoustic storytelling with fragile falsetto and close-mic warmth."
+    },
+    {
+      "id": "rhett-wilder-swagger",
+      "label": "Swagger",
+      "status": "in-progress",
+      "notes": "Slick funk grooves blended with neon pop hooks; awaiting mixdown references."
+    }
+  ],
+  "metadata": {
+    "source": "creative-direction",
+    "updatedAt": "2024-05-01T00:00:00.000Z"
+  }
+}
