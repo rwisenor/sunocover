@@ -1,36 +1,59 @@
-# SUNO Song Processor
+# SunoCover Monorepo
 
-![Screenshot](screenshot.png)
+This repository hosts both the legacy Python tooling for audio pre-processing and the
+next-generation SunoCover browser extension. The project is structured as a multi-language
+monorepo managed with `pnpm` workspaces for the web components while keeping Python utilities
+isolated under `py/`.
 
-Standalone app for song processing to Bypass uploads restrictions in suno
+## Project layout
 
-## Install
-
-```bash
-git clone https://github.com/Ido108/sunocover.git
-cd sunocover
+```
+.
+├── data/                     # Structured datasets feeding the extension
+├── packages/
+│   ├── core/                 # Shared schemas, provider adapters, and compilers
+│   ├── extension/            # Manifest V3 browser extension (Vite + TypeScript)
+│   └── shared/               # Cross-package TypeScript types
+├── py/                       # Original Python desktop application
+└── README.md
 ```
 
-**Windows:** `setup.bat`
-**Mac/Linux:** `chmod +x setup.sh && ./setup.sh`
+## Getting started (JavaScript/TypeScript workspace)
 
-Requires: Python 3.10+
+1. Install [pnpm](https://pnpm.io/installation).
+2. Install dependencies across the workspace:
 
-## Run
+   ```bash
+   pnpm install
+   ```
 
-**Windows:** `start.bat`
-**Mac/Linux:** `./start.sh`
+3. Run the extension in development mode:
 
-Opens automatically
+   ```bash
+   cd packages/extension
+   pnpm dev
+   ```
 
-## Usage
+   The Vite dev server compiles the popup/options UIs and produces the extension bundle in
+   `dist/` for use with Chrome or Chromium-based browsers. The content script currently ships
+   with placeholder logic that will be replaced with artist tokenization and descriptor
+   previews in upcoming milestones.
 
-Upload an audio/youtube url, it will start the process right away (if suno not accepting the first output, try the enhanced process, it'll work.)
+## Getting started (Python workspace)
 
-Note- IGNORE the error message of dependency conflicts (of audio-separator) if exist in installation. It will work fine.
+The legacy audio processing utility lives under `py/`. Follow the instructions in
+[`py/README.md`](py/README.md) to recreate the original desktop environment.
 
-## Credits 🙏
+## Planned capabilities
 
-- [nomadkaraoke](https://github.com/nomadkaraoke) - Author of [python-audio-separator](https://github.com/nomadkaraoke/python-audio-separator/) Thank you!
-- [Kuielab & Woosung Choi](https://github.com/kuielab) - Developed the original MDX-Net AI code.
-- [PseudoRAM](https://github.com/nomadkaraoke) - Author of Author of [RVC-v2-UI](https://github.com/PseudoRAM/RVC-v2-UI/) Thank you!
+The modernization track introduces:
+
+- Schema-first descriptor generation with deterministic verbosity compilers (Concise ≤10
+  words, Balanced ≤40 words, Detailed ≤80 words).
+- Provider adapters for OpenAI, Anthropic, and Gemini with strict JSON guardrails.
+- Manifest V3 extension with secure API key management, persona presets, and DOM previews on
+  Suno's create page.
+- IndexedDB-backed caching and persona datasets seeded with Rhett Wilder presets.
+- Automated linting, testing (Vitest + Playwright), and release packaging via GitHub Actions.
+
+Documentation in `docs/` will be expanded as the extension approaches MVP status.

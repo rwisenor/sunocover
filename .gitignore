@@ -1,0 +1,12 @@
+node_modules
+pnpm-lock.yaml
+packages/**/dist
+packages/**/build
+packages/**/.vite
+packages/**/coverage
+.venv
+py/.venv
+.idea
+.vscode
+.DS_Store
+.env
